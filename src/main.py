@@ -1,7 +1,12 @@
-import os, shutil, glob
+import os, time, shutil, glob
 
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+
+import utils as u
+
+DEBUG = False
 
 SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
 SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
@@ -48,5 +53,62 @@ Rcalib, _ = cv2.Rodrigues(rvecs[0])
 
 frames_paths = glob.glob(os.path.join(seq_path, "im_*R.png"))[3:]
 
-for frame_path in frames_paths:
-	print(frame_path)
+tim_rd = np.empty((len(frames_paths)))
+tim_th = np.empty((len(frames_paths)))
+tim_pl = np.empty((len(frames_paths)))
+
+for frame_index, frame_path in enumerate(frames_paths):
+	if (False and frame_index > 0):
+		break
+
+	start_time = time.time()
+
+	frame = cv2.imread(frame_path, cv2.IMREAD_GRAYSCALE)
+	fsize = frame.shape
+
+	tim_rd[frame_index] = time.time() - start_time
+	start_time = time.time()
+
+	# Histogramme
+	if False:
+		hist = cv2.calcHist([frame], [0], None, [256], [0, 256])
+		plt.plot(hist, color='b')
+		plt.show()
+
+	# Traitement de la frame
+	_, th1 = cv2.threshold(frame, 35, 255, cv2.THRESH_BINARY)
+
+	tim_th[frame_index] = time.time() - start_time
+	start_time = time.time()
+
+	# Liste des coordonnées des points 2D du laser
+	# pt2s_plver, pt2s_plhor = [], []
+	for x in range(th1.shape[1]):
+		for y in range(th1.shape[0]):
+	# 		if (th1[y, x] != 0):
+	# 			if (u.pt2_in_plver(x, y)):
+	# 				pt2s_plver.append((x, y))
+	# 			else:
+	# 				pt2s_plhor.append((x, y))
+			xd = u.pt2_in_plver(0, 1)
+
+	tim_pl[frame_index] = time.time() - start_time
+	start_time = time.time()
+
+	# Mode debug pour voir les calculs
+	if (not DEBUG):
+		continue
+
+	frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+	cv2.line(frame, (0, u.dinter_i(0)), (fsize[1], u.dinter_i(fsize[1])), (0,0,255), 1)
+
+	cv2.imshow("Previsualisation", frame)
+	cv2.waitKey(0)
+
+print("Temps de lecture moyen:", np.mean(tim_rd))
+print("Temps de treshold planaire moyen:", np.mean(tim_th))
+print("Temps de triage planaire moyen:", np.mean(tim_pl))
+
+if (DEBUG):
+	cv2.destroyAllWindows()
