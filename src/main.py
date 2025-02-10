@@ -1,38 +1,46 @@
+import os, shutil
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
-import math
-import os
 
+seq_dir = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
+seq_name = "imgs2024-03-03_17_49_28.135995R"
+seq_path = os.path.join(seq_dir, seq_name)
+seq_zip = seq_path + ".zip"
 
-print(os.getcwd())
+if (os.path.isdir(seq_path)):
+	print("La séquence d'images est un répertoire.")
+elif (os.path.isfile(seq_zip)):
+	print("La séquence d'images est une archive. Décompression...")
 
-fileLocation = 'sequences_imgs/'
-sequence = 'imgs2024-03-03_17_49_28.135995R'
-fileName = os.getcwd() + "/" + fileLocation + sequence + '/' + 'CalibResult.npz'
+	try:
+		shutil.unpack_archive(seq_zip, extract_dir=seq_dir)
+		print("Décompression réussie!")	
+	except:
+		print("Impossible de décompresser la séquence d'images. Sortie.")
+		exit()
+else:
+	print("La séquence d'images est introuvable. (Ni répertoire, ni archive)")
+	exit()
 
-dimSquare=0.012
-with np.load(fileName) as X:
-  mtx, dist, rvecs, tvecs = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
+calib_path = os.path.join(seq_path, "CalibResult.npz")
 
-nbimages=len(rvecs)
-alphau=mtx[0][0]
-alphav=mtx[1][1]
-pu=mtx[0][2]
-pv=mtx[1][2]
-print(
-       "alpha u", alphau, "\n"
-       "alpha v", alphav, "\n",
-       "pu", pu, "\n",
-       "pv", pv, "\n"
-    )
- 
-for i in range(nbimages):  
-    matroti, jacobian=cv2.Rodrigues(rvecs[i]) #Rodrigues permet de calculer la matrice de rotation correspondante    
-    axis = np.float32([[0,0,0], [3*dimSquare,0,0], [0,3*dimSquare,0], [0,0,3*dimSquare]]).reshape(-1,3)
-    imgpts, jac = cv2.projectPoints(axis, rvecs[i], tvecs[i], mtx,None) #pour ne pas utiliser les distorsions
-    cRTw=np.concatenate((matroti,tvecs[i]),axis=1)
-    cRTw = np.vstack((cRTw,[0,0,0,1]))
-    print("cRTw: "+str(cRTw))
+if (not os.path.isfile(calib_path)):
+	print("Impossible de trouver le rapport de calibration:")
+	print(calib_path)
 
-    
+with np.load(calib_path) as X:
+	mtx, dist, rvecs, tvecs = [X[i] for i in ('mtx', 'dist', 'rvecs', 'tvecs')]
+
+# Intrinsincs
+alphau = mtx[0][0]
+alphav = mtx[1][1]
+pu = mtx[0][2]
+pv = mtx[1][2]
+
+print("alphau:", alphau)
+print("alphav:", alphav)
+print("pu:", pu)
+print("pv:", pv)
+
+Rcalib, _ = cv2.Rodrigues(rvecs[0])
