@@ -6,7 +6,6 @@ import os
 
 np.set_printoptions(suppress=True)
 
-
 def compareFloat(f1, f2):
     if f1 == 0 :
       return abs(f1-f2) < 1e-6
@@ -21,6 +20,8 @@ pictureName = fileLocation + '/' + sequence +  '/' + 'im_00000R.png'
 dimSquare=0.012
 with np.load(fileName) as X:
   mtx, dist, rvecs, tvecs = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
+  print("rvecs", rvecs)
+  print("tvecs", tvecs)
 
 nbimages=len(rvecs)
 alphau=mtx[0][0]
@@ -76,8 +77,11 @@ for x in range(5000):
    
   if (1.252 * point[0] + 116 < point[1]):
       print(x)
+      cv2.circle(img, point, 1, (255,0,0), 5)
       break
-   #cv2.circle(img, point, 1, (255,0,0), 1)
+
+  
+   
    #if compareFloat(1.252*point[0] + 116, point[1]):
       #print("intersection at :", point)
 
