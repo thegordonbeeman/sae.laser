@@ -1,11 +1,12 @@
-import os, shutil
+import os, shutil, glob
 
 import cv2
 import numpy as np
 
-seq_dir = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
-seq_name = "imgs2024-03-03_17_49_28.135995R"
-seq_path = os.path.join(seq_dir, seq_name)
+SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
+SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
+
+seq_path = os.path.join(SEQ_DIR, SEQ_NAME)
 seq_zip = seq_path + ".zip"
 
 if (os.path.isdir(seq_path)):
@@ -14,7 +15,7 @@ elif (os.path.isfile(seq_zip)):
 	print("La séquence d'images est une archive. Décompression...")
 
 	try:
-		shutil.unpack_archive(seq_zip, extract_dir=seq_dir)
+		shutil.unpack_archive(seq_zip, extract_dir=SEQ_DIR)
 		print("Décompression réussie!")	
 	except:
 		print("Impossible de décompresser la séquence d'images. Sortie.")
@@ -44,3 +45,8 @@ print("pu:", pu)
 print("pv:", pv)
 
 Rcalib, _ = cv2.Rodrigues(rvecs[0])
+
+frames_paths = glob.glob(os.path.join(seq_path, "im_*R.png"))[3:]
+
+for frame_path in frames_paths:
+	print(frame_path)
