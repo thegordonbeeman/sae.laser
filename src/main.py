@@ -13,15 +13,15 @@ def compareFloat(f1, f2):
 
 fileLocation = '/home/burei/Documents/IUT/robotique_s6/PHOTOS_SAE/sequences_imgs'
 sequence = 'imgs2024-03-03_17_49_28.135995R'
-fileName = fileLocation + '/' + sequence + '/' + 'CalibResult.npz'
+calibPath = fileLocation + '/' + sequence + '/' + 'CalibResult.npz'
 
-pictureName = fileLocation + '/' + sequence +  '/' + 'im_00000R.png'
+picturePath = fileLocation + '/' + sequence +  '/' + 'im_00000R.png'
 
 dimSquare=0.012
-with np.load(fileName) as X:
+with np.load(calibPath) as X:
   mtx, dist, rvecs, tvecs = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
-  print("rvecs", rvecs)
-  print("tvecs", tvecs)
+'''  print("rvecs", rvecs)
+  print("tvecs", tvecs)'''
 
 nbimages=len(rvecs)
 alphau=mtx[0][0]
@@ -67,16 +67,18 @@ for i in range(nbimages):
       iCw1 = iCw
       print(iCw1.shape)
 
-img = cv2.imread(pictureName, cv2.IMREAD_COLOR)
+img = cv2.imread(picturePath, cv2.IMREAD_COLOR)
 orig, X, Y, Z= projeterPoint((0,0,0), iCw1), projeterPoint((0.1,0,0), iCw1), projeterPoint((0,0.1,0), iCw1), projeterPoint((0,0,0.1), iCw1)
 
+dx = 0
 for x in range(5000):
   point = projeterPoint((-x*0.00001,0,0), iCw1)
 
    #print(point[0], 1.252 * point[0] + 116, point[1])
    
   if (1.252 * point[0] + 116 < point[1]):
-      print(x)
+      dx = -x*0.00001
+      print(dx)
       cv2.circle(img, point, 1, (255,0,0), 5)
       break
 
