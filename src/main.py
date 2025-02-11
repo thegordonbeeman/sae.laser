@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 import utils as u
 
-DEBUG = False
+DEBUG = True
+DEBUG_MAX_FRAMES = 100
 
 SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
 SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
@@ -53,12 +54,14 @@ Rcalib, _ = cv2.Rodrigues(rvecs[0])
 
 frames_paths = glob.glob(os.path.join(seq_path, "im_*R.png"))[3:]
 
-tim_rd = np.empty((len(frames_paths)))
-tim_th = np.empty((len(frames_paths)))
-tim_pl = np.empty((len(frames_paths)))
+frame_count = min(DEBUG_MAX_FRAMES, len(frames_paths))
+
+tim_rd = np.empty((frame_count))
+tim_th = np.empty((frame_count))
+tim_pl = np.empty((frame_count))
 
 for frame_index, frame_path in enumerate(frames_paths):
-	if (False and frame_index > 0):
+	if (True and frame_index + 1 > frame_count):
 		break
 
 	start_time = time.time()
@@ -82,15 +85,14 @@ for frame_index, frame_path in enumerate(frames_paths):
 	start_time = time.time()
 
 	# Liste des coordonnées des points 2D du laser
-	# pt2s_plver, pt2s_plhor = [], []
-	for x in range(th1.shape[1]):
-		for y in range(th1.shape[0]):
-	# 		if (th1[y, x] != 0):
-	# 			if (u.pt2_in_plver(x, y)):
-	# 				pt2s_plver.append((x, y))
-	# 			else:
-	# 				pt2s_plhor.append((x, y))
-			xd = u.pt2_in_plver(0, 1)
+	pt2s = np.where(th1 != 0)
+	pt2s_plver, pt2s_plhor = [], []
+	for x, y in zip(pt2s[1], pt2s[0]):
+		if (th1[y, x] != 0):
+			if (u.pt2_in_plver(x, y)):
+				pt2s_plver.append((x, y))
+			else:
+				pt2s_plhor.append((x, y))
 
 	tim_pl[frame_index] = time.time() - start_time
 	start_time = time.time()
@@ -102,6 +104,12 @@ for frame_index, frame_path in enumerate(frames_paths):
 	frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
 	cv2.line(frame, (0, u.dinter_i(0)), (fsize[1], u.dinter_i(fsize[1])), (0,0,255), 1)
+
+	for pt2 in pt2s_plhor:
+		frame[pt2[1], pt2[0]] = (0,255,0)
+	
+	for pt2 in pt2s_plver:
+		frame[pt2[1], pt2[0]] = (0,0,255)
 
 	cv2.imshow("Previsualisation", frame)
 	cv2.waitKey(0)
