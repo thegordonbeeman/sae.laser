@@ -6,11 +6,14 @@ import matplotlib.pyplot as plt
 
 import utils as u
 
-DEBUG = True
+DEBUG = False
 DEBUG_MAX_FRAMES = 100
 
 SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
 SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
+
+PLANE_VER = np.array([0, 0, 1, 0])
+PLANE_HOR = np.array([1, 0, 0,-0.04155])
 
 seq_path = os.path.join(SEQ_DIR, SEQ_NAME)
 seq_zip = seq_path + ".zip"
@@ -40,17 +43,24 @@ with np.load(calib_path) as X:
 	mtx, dist, rvecs, tvecs = [X[i] for i in ('mtx', 'dist', 'rvecs', 'tvecs')]
 
 # Intrinsincs
-alphau = mtx[0][0]
-alphav = mtx[1][1]
-pu = mtx[0][2]
-pv = mtx[1][2]
+params = {
+	'alphau' : mtx[0][0],
+	'alphav' : mtx[1][1],
+	'pu' : mtx[0][2],
+	'pv' : mtx[1][2],
+	'tvec' : tvecs[0],
+	'rvec' : rvecs[0],
+}
 
-print("alphau:", alphau)
-print("alphav:", alphav)
-print("pu:", pu)
-print("pv:", pv)
+if (DEBUG):
+	print(params)
 
-Rcalib, _ = cv2.Rodrigues(rvecs[0])
+Rcalib, _ = cv2.Rodrigues(params['rvec'])
+
+params['iCc'] = u.gen_iCc(params)
+params['cRTw'] = u.gen_cRTw(Rcalib, params)
+
+params['iCw'] = params['iCc'] @ params['cRTw']
 
 frames_paths = glob.glob(os.path.join(seq_path, "im_*R.png"))[3:]
 
@@ -87,12 +97,15 @@ for frame_index, frame_path in enumerate(frames_paths):
 	# Liste des coordonnées des points 2D du laser
 	pt2s = np.where(th1 != 0)
 	pt2s_plver, pt2s_plhor = [], []
+	pt3s_plver, pt3s_plhor = [], []
 	for x, y in zip(pt2s[1], pt2s[0]):
 		if (th1[y, x] != 0):
 			if (u.pt2_in_plver(x, y)):
 				pt2s_plver.append((x, y))
+				pt3s_plver.append(u.pt2_to_pt3((x, y), PLANE_VER, params))
 			else:
 				pt2s_plhor.append((x, y))
+				pt3s_plver.append(u.pt2_to_pt3((x, y), PLANE_HOR, params))
 
 	tim_pl[frame_index] = time.time() - start_time
 	start_time = time.time()
