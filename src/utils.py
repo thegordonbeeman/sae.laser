@@ -4,16 +4,6 @@ import numpy as np
 D_INT_A = 1.252
 D_INT_B = 116
 
-def gen_iCc(params):
-	return np.float32([
-		[params['alphau'], 0, params['pu'], 0],
-		[0, params['alphav'], params['pv'], 0],
-		[0, 0, 1, 0]])
-
-def gen_cRTw(mRot, params):
-	cRTw = np.hstack((mRot, params['tvec']))
-	return np.vstack((cRTw, [0, 0, 0, 1]))
-
 def dinter(x):
 	return D_INT_A * x + D_INT_B
 
