@@ -14,9 +14,27 @@ def is_point_in_vertical(pX, pY):
 def is_point_in_horizontal(pX, pY):
     return 1.252 * pX + 116 > pY
 
-def fit_line_least_squares(datapoints):
-    n = len(datapoints)
-    m = 0
+def fit_line_least_squares(x, y):
+    num_points = len(x)
+    x_sum = sum(x)
+    y_sum = sum(y)
+    x2_sum = 0
+    xy_sum = 0
+    for xi in x:
+        x2_sum += xi**2
+    for xi, yi in zip(x, y):
+        xy_sum += xi*yi
+    
+    a = (num_points * xy_sum - x_sum * y_sum) / (num_points * x2_sum - x_sum**2)
+    b = (x2_sum * y_sum - x_sum * xy_sum) / (num_points * x2_sum - x_sum**2)
+    return a, b
+
+def determine_plan(pA, pB, pC):
+    vecB = pB - pA
+    vecC = pC - pA
+    vecNormal = np.cross(vecB, vecC)
+    
+    
 
 img = cv2.imread(fileName)
 ret, t1 = cv2.threshold(img, 230,255, cv2.THRESH_BINARY)
@@ -109,7 +127,7 @@ for mu, mv in zip(pointsX, pointsY):
 
         X = np.linalg.inv(A)@B
         points_pVER.append(X)
-    print(X)
+
 '''cv2.circle(img, pointV, 1, (255,0,0), 2)
 cv2.circle(img, pointH, 1, (255,0,0), 2)
 
@@ -121,6 +139,7 @@ cv2.imshow("seuillage", t1)
 cv2.waitKey(0)
 cv2.destroyAllWindows()'''
 
+distance_x = np.mean([p[0] for p in points_pVER])
 
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
@@ -129,10 +148,29 @@ ys = [p[1] for p in points_pVER]
 zs = [p[2] for p in points_pVER]
 ax.scatter(xs, ys, zs, marker ='^', color='green')
 
+
+yVer = np.array(ys)
+zVer = np.array(zs)
+a,b = fit_line_least_squares(yVer, zVer)
+
+xline = np.ones(shape=len(yVer))*-0.04155
+yline = np.linspace(0, 0.1, len(yVer))
+zline = np.linspace(0, 0.1, len(yVer))*a+b
+ax.plot3D(xline, yline, zline)  #Plot la ligne passant par les points laser du plan vertical
+
 xs = [p[0] for p in points_pHOZ]
 ys = [p[1] for p in points_pHOZ]
 zs = [p[2] for p in points_pHOZ]
 ax.scatter(xs, ys, zs, marker ='o', color='blue')
+
+xVer = np.array(xs)
+yVer = np.array(ys)
+a,b = fit_line_least_squares(xVer, yVer)
+
+zline = np.zeros(shape=len(yVer))
+xline = np.linspace(0, 0.1, len(yVer))
+yline = np.linspace(0, 0.1, len(yVer))*a+b
+ax.plot3D(xline, yline, zline)  #Plot la ligne passant par les points laser du plan horizontal
 
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
