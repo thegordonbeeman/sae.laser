@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import os
+from mpl_toolkits.mplot3d import Axes3D
 
 fileLocation = '/home/burei/Documents/IUT/robotique_s6/PHOTOS_SAE/sequences_imgs'
 sequence = 'imgs2024-03-03_17_49_28.135995R'
@@ -33,8 +34,7 @@ def determine_plan(pA, pB, pC):
     vecB = pB - pA
     vecC = pC - pA
     vecNormal = np.cross(vecB, vecC)
-    
-    
+    return vecNormal
 
 img = cv2.imread(fileName)
 ret, t1 = cv2.threshold(img, 230,255, cv2.THRESH_BINARY)
@@ -72,8 +72,6 @@ cRT1w = np.vstack((cRT1w,[0,0,0,1]))
 iC1w=iCc@cRT1w
 
 cv2.line(img, (222, 394), (0, 116), (0,0,255), 1) #Intersection pV, pH
-pointV = (75, 396)
-pointH = (197, 102)
 
 A = np.zeros((3,3), np.float32)
 B = np.zeros((3,1), np.float32)
@@ -128,6 +126,8 @@ for mu, mv in zip(pointsX, pointsY):
         X = np.linalg.inv(A)@B
         points_pVER.append(X)
 
+points_pHOZ = np.array(points_pHOZ)
+points_pVER = np.array(points_pVER)
 '''cv2.circle(img, pointV, 1, (255,0,0), 2)
 cv2.circle(img, pointH, 1, (255,0,0), 2)
 
@@ -139,38 +139,48 @@ cv2.imshow("seuillage", t1)
 cv2.waitKey(0)
 cv2.destroyAllWindows()'''
 
-distance_x = np.mean([p[0] for p in points_pVER])
+distance_x = -0.4155
 
 fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-xs = [p[0] for p in points_pVER]
-ys = [p[1] for p in points_pVER]
-zs = [p[2] for p in points_pVER]
-ax.scatter(xs, ys, zs, marker ='^', color='green')
+ax = plt.axes(projection='3d')
+
+yVer = np.array(points_pVER[:,1])
+zVer = np.array(points_pVER[:,2])
+a_v,b_v = fit_line_least_squares(yVer, zVer)
+
+xline_v = np.ones(shape=len(yVer))*-0.04155
+yline_v = np.linspace(0, 0.1, len(yVer))
+zline_v = np.linspace(0, 0.1, len(yVer))*a_v+b_v
 
 
-yVer = np.array(ys)
-zVer = np.array(zs)
-a,b = fit_line_least_squares(yVer, zVer)
+xHoz = np.array(points_pHOZ[:,0])
+yHoz = np.array(points_pHOZ[:,1])
+a_h,b_h = fit_line_least_squares(xHoz, yHoz)
 
-xline = np.ones(shape=len(yVer))*-0.04155
-yline = np.linspace(0, 0.1, len(yVer))
-zline = np.linspace(0, 0.1, len(yVer))*a+b
-ax.plot3D(xline, yline, zline)  #Plot la ligne passant par les points laser du plan vertical
+zline_h = np.zeros(shape=len(yVer))
+xline_h = np.linspace(0, 0.1, len(yVer))
+yline_h = np.linspace(0, 0.1, len(yVer))*a_h+b_h
 
-xs = [p[0] for p in points_pHOZ]
-ys = [p[1] for p in points_pHOZ]
-zs = [p[2] for p in points_pHOZ]
-ax.scatter(xs, ys, zs, marker ='o', color='blue')
+ax.plot3D(xline_v, yline_v, zline_v)  #Plot la ligne passant par les points laser du plan horizontal
+ax.plot3D(xline_h, yline_h, zline_h)  #Plot la ligne passant par les points laser du plan vertical
 
-xVer = np.array(xs)
-yVer = np.array(ys)
-a,b = fit_line_least_squares(xVer, yVer)
+ax.scatter(points_pHOZ[:,0], points_pHOZ[:,1], points_pHOZ[:,2], marker ='o', color='blue')
+ax.scatter(points_pVER[:,0], points_pVER[:,1], points_pVER[:,2], marker ='^', color='green')
 
-zline = np.zeros(shape=len(yVer))
-xline = np.linspace(0, 0.1, len(yVer))
-yline = np.linspace(0, 0.1, len(yVer))*a+b
-ax.plot3D(xline, yline, zline)  #Plot la ligne passant par les points laser du plan horizontal
+#Calcul des 3 points pour le plan laser
+P1 = np.array([distance_x, np.mean(points_pVER[:,1]), 0]) #Point sur le plan laser et l'intersection
+P2 = np.array([distance_x, np.max(np.abs(points_pVER[:,1])), np.max(np.abs(points_pVER[:,2]))]) #Point sur le plan laser et le plan vertical
+P3 = np.array([np.max(np.abs(points_pHOZ[:,0])), np.max(np.abs(points_pHOZ[:,1])), 0]) #Point sur le plan laser et le plan horizontal
+
+vN = determine_plan(P1, P2, P3)
+vN = vN / np.linalg.norm(vN)
+point_laser = points_pHOZ[20]
+dist2orig = np.linalg.norm(point_laser)
+print(point_laser)
+print(vN@point_laser)
+print(dist2orig)
+d = dist2orig-vN@point_laser
+print(vN[0], vN[1], vN[2], d)
 
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
