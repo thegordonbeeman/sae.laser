@@ -18,29 +18,5 @@ def pt2_in_plver(px, py):
 def pt2_in_plhor(px, py):
 	return dinter(px) > py
 
-# Projeter un point 2D sur un plan 3D
-# 'plane' est un Vecteur 4
-A = np.zeros((3, 3), np.float32)
-B = np.zeros((3, 1), np.float32)
-def pt2_to_pt3(pt2, plane, params):
-	iCw = params['iCw']
-
-	n = 0
-	A[n][0]	= iCw[2][0]*pt2[0]-iCw[0][0]
-	A[n][1]	= iCw[2][1]*pt2[0]-iCw[0][1]
-	A[n][2]	= iCw[2][2]*pt2[0]-iCw[0][2]
-	B[n]	=-iCw[2][3]*pt2[0]+iCw[0][3]
-
-	n = 1
-	A[n][0]	= iCw[2][0]*pt2[1]-iCw[1][0]
-	A[n][1]	= iCw[2][1]*pt2[1]-iCw[1][1]
-	A[n][2]	= iCw[2][2]*pt2[1]-iCw[1][2]
-	B[n]	=-iCw[2][3]*pt2[1]+iCw[1][3]
-
-	n = 2
-	A[n][0]	= plane[0]
-	A[n][1]	= plane[1]
-	A[n][2]	= plane[2]
-	B[n]	= plane[3]
-
-	return np.linalg.inv(A) @ B
+def pt2_in_bounds(px, py, mx, my, MX, MY):
+	return px > mx and px < MX and py > my and py < MY
