@@ -10,7 +10,9 @@ import utils as u
 
 DEBUG = False
 DEBUG_MIN_FRAMES = 180
-DEBUG_MAX_FRAMES = 300
+DEBUG_MAX_FRAMES = 200
+
+REPLAYS_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser\\src\\replays\\"
 
 SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
 SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
@@ -51,6 +53,10 @@ frame_count = min(DEBUG_MAX_FRAMES, len(frames_paths))
 pt3s_final = np.empty((3, 1000000))
 valid_pts_cpt = 0
 
+replay_plaser = np.empty((4, frame_count))
+replay_pt3s_phoriz = np.empty((3, 50, frame_count))
+
+absindex = 0 # index absolu de l'itération de la boucle
 for frame_index, frame_path in enumerate(frames_paths):
 	if (True and frame_index + 1 > frame_count):
 		break
@@ -94,6 +100,8 @@ for frame_index, frame_path in enumerate(frames_paths):
 	pt2s_plver = pt2s_plver[:, :iv-1]
 	pt3s_plver = pt3s_plver[:, :iv-1]
 
+	replay_pt3s_phoriz[:, :, absindex] = pt3s_plhor[:, np.random.choice(pt3s_plhor.shape[1], 50)]
+
 	P1 = np.array([PLANE_VER[3], np.min(pt3s_plver[1,:]), np.min(pt3s_plver[2,:])])
 	P2 = np.array([PLANE_VER[3], np.max(pt3s_plver[1,:]), np.max(pt3s_plver[2,:])])
 	P3 = np.array([np.max(pt3s_plhor[0,:]), np.max(pt3s_plhor[1,:]), 0])
@@ -103,6 +111,7 @@ for frame_index, frame_path in enumerate(frames_paths):
 	d = np.sum(nvec @ pt3s_plhor[:, :] / pt3s_plhor.shape[1])
 
 	plaser = np.array([nvec[0], nvec[1], nvec[2], d])
+	replay_plaser[:, absindex] = plaser[:]
 
 	pt3s_plaser = np.empty(pt3s_plhor.shape)
 	_i = 0
@@ -113,6 +122,8 @@ for frame_index, frame_path in enumerate(frames_paths):
 	pt3s_plaser = pt3s_plaser[:, :_i-1]
 	pt3s_final[:, valid_pts_cpt:valid_pts_cpt + pt3s_plaser.shape[1]] = pt3s_plaser[:, :]
 	valid_pts_cpt += pt3s_plaser.shape[1]
+
+	absindex += 1
 
 	# Mode debug pour voir les calculs
 	if (not DEBUG):
@@ -142,14 +153,21 @@ for frame_index, frame_path in enumerate(frames_paths):
 
 	plt.show()
 
-pt3s_final = pt3s_final[:, :valid_pts_cpt]
-seli = np.random.choice(pt3s_final.shape[1], 1500)
+replay_plaser = replay_plaser[:, :absindex]
+replay_pt3s_phoriz = replay_pt3s_phoriz[:, :, :absindex]
+np.savez(os.path.join(REPLAYS_DIR, SEQ_NAME + "." + str(time.time())),
+	phoriz=PLANE_HOR, pverti=PLANE_VER,
+	plaser=replay_plaser,
+	pt3s_phoriz=replay_pt3s_phoriz)
 
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-ax.scatter(pt3s_final[0, seli], pt3s_final[1, seli], pt3s_final[2, seli])
-ax.set_aspect('equal')
-plt.show()
+# pt3s_final = pt3s_final[:, :valid_pts_cpt]
+# seli = np.random.choice(pt3s_final.shape[1], 1500)
+
+# fig = plt.figure()
+# ax = fig.add_subplot(projection='3d')
+# ax.scatter(pt3s_final[0, seli], pt3s_final[1, seli], pt3s_final[2, seli])
+# ax.set_aspect('equal')
+# plt.show()
 
 if (DEBUG):
 	cv2.destroyAllWindows()
