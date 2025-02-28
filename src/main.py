@@ -154,7 +154,7 @@ for frame_index, frame_path in enumerate(frames_paths):
 	plt.show()
 
 pt3s_final = pt3s_final[:, :valid_pts_cpt-1]
-seli = np.random.choice(pt3s_final.shape[1], 2000)
+seli = np.random.choice(pt3s_final.shape[1], 4000)
 
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
@@ -164,6 +164,8 @@ ax = fig.add_subplot(projection='3d')
 ax.scatter(pt3s_final[0, seli], pt3s_final[1, seli], pt3s_final[2, seli])
 ax.set_aspect('equal')
 plt.show()
+
+np.save(os.path.join(os.getcwd(), "result"), pt3s_final[:, :])
 
 if (DEBUG):
 	cv2.destroyAllWindows()
