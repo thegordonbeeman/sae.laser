@@ -8,15 +8,24 @@ from camera import Camera
 from geo import Point2D, Point3D, Plane, to3D, pts_to_nvec, normalize
 import utils as u
 
+# Mode débug: montrera plus de détails sur le traitement de chaque image, inutilisable en production
+# ATTENTION: DEBUG_MIN/MAX_FRAMES est valable même sans le mode débug
 DEBUG = False
-DEBUG_MIN_FRAMES = 180
-DEBUG_MAX_FRAMES = 300
+DEBUG_MIN_FRAMES = 100
+DEBUG_MAX_FRAMES = 410
 
+# DIR: Dossier ou se trouvent les séquences, NAME: Nom de la séquence à traiter
+# La séquence peut être un répertoire ou une archive (ne pas aposer de .zip s'il s'agit d'une archive)
 SEQ_DIR = "C:\\Users\\Thomas Laburthe\\Documents\\Code\\sae.laser.images\\"
 SEQ_NAME = "imgs2024-03-03_17_49_28.135995R"
 
+# Equations du plan horizontal et vertical
 PLANE_HOR = np.array([0, 0, 1, 0])
 PLANE_VER = np.array([1, 0, 0,-0.04155])
+
+# Bounds 2D décrivant un carré englobant précisément l'objet à scanner
+XMIN, XMAX = 300, 130
+YMIN, YMAX = 560, 350
 
 seq_path = os.path.join(SEQ_DIR, SEQ_NAME)
 seq_zip = seq_path + ".zip"
@@ -48,7 +57,7 @@ camera = Camera(calib_params)
 frames_paths = glob.glob(os.path.join(seq_path, "im_*R.png"))[3:]
 frame_count = min(DEBUG_MAX_FRAMES, len(frames_paths))
 
-pt3s_final = np.empty((3, 1000000))
+pt3s_final = np.zeros((3,1), np.float32)
 valid_pts_cpt = 0
 
 for frame_index, frame_path in enumerate(frames_paths):
@@ -102,16 +111,18 @@ for frame_index, frame_path in enumerate(frames_paths):
 	nvec = normalize(nvec)
 	d = np.sum(nvec @ pt3s_plhor[:, :] / pt3s_plhor.shape[1])
 
-	plaser = np.array([nvec[0], nvec[1], nvec[2], d])
+	plaser = np.array([nvec[0], nvec[1], nvec[2], d], np.float32)
 
 	pt3s_plaser = np.empty(pt3s_plhor.shape)
 	_i = 0
 	for i in range(pt2s_plhor.shape[1]):
-		if (u.pt2_in_bounds(pt2s_plhor[0, i], pt2s_plhor[1, i], 300, 130, 560, 350)):
+		if (u.pt2_in_bounds(pt2s_plhor[0, i], pt2s_plhor[1, i], XMIN, XMAX, YMIN, YMAX)):
 			pt3s_plaser[:, _i] = to3D(pt2s_plhor[:, i], plaser, camera)
+			_i += 1
 	
 	pt3s_plaser = pt3s_plaser[:, :_i-1]
-	pt3s_final[:, valid_pts_cpt:valid_pts_cpt + pt3s_plaser.shape[1]] = pt3s_plaser[:, :]
+	pt3s_final = np.concatenate((pt3s_final, pt3s_plaser), axis=1)
+	# pt3s_final[:, valid_pts_cpt:valid_pts_cpt + pt3s_plaser.shape[1]] = pt3s_plaser[:, :]
 	valid_pts_cpt += pt3s_plaser.shape[1]
 
 	# Mode debug pour voir les calculs
@@ -142,11 +153,14 @@ for frame_index, frame_path in enumerate(frames_paths):
 
 	plt.show()
 
-pt3s_final = pt3s_final[:, :valid_pts_cpt]
-seli = np.random.choice(pt3s_final.shape[1], 1500)
+pt3s_final = pt3s_final[:, :valid_pts_cpt-1]
+seli = np.random.choice(pt3s_final.shape[1], 2000)
 
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
+# plt.plot(range(pt3s_final.shape[1]), pt3s_final[0, :], 'r')
+# plt.plot(range(pt3s_final.shape[1]), pt3s_final[1, :], 'g')
+# plt.plot(range(pt3s_final.shape[1]), pt3s_final[2, :], 'b')
 ax.scatter(pt3s_final[0, seli], pt3s_final[1, seli], pt3s_final[2, seli])
 ax.set_aspect('equal')
 plt.show()
